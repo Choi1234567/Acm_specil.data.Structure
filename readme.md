@@ -191,11 +191,9 @@ print(count)
 
 
 #### 解析
-线状数组**尚未解决**
+见3.2
 
-``` python
-#尚未解决
-```
+
 ---
 ## 3. 二分查找
 
@@ -916,10 +914,95 @@ if __name__ == '__main__':
 根据题目要求，此处还会继续输入n，如果n是0，结束；如果n不是0，则代表接下来还会输入一颗有n个节点的树，直到输入0为止
 
 #### 解析
-**尚未解决**
+利用中序遍历一颗正常的树之后发现，输出的结果是一个递增的序列，所以反过来思考，将一颗损坏的树中序遍历出来的序列，改变成有序的序列，就可以修复这颗树了。
+
+比如这棵损坏的树：
+
+				8
+		4				7
+ 	1		3		9		11
+
+中序遍历的结果是：1 4 3 8 9 7 11，我们将其变成1 4 7 8 9 10 11即可修复这棵树了，即：
+
+				8
+		4				10
+ 	1		7		9		11
+	
+因此，这题就变成了，将无序的数组，变成有序的数组，最少需要修改几个数字。
+
+把无序的数组，变成有序的数组之前，我们可以先找出最长递增子序列，这部分不用改；然后改变其他数字，让这些数字跟这个最长的递增子序列组合成一个新的有序数组即可。这样能保证要修改的数字是最少的。
+
+比如上面的案例里面，最长的递增子序列是1 4 8 9 11，我们把3和7也改一下，就变成了1 4 7 8 9 10 11，这样只需要改变两次，即可让整个数组有序了。
+
+但是，考虑到题目要求：树的节点都是正整数，因此，这题不止是求最长递增子序列，还要满足两个限定条件
+
+1、如果数组是1、5、2、6、7，不难看出，最长递增子序列是1、2、6、7；但是在1和2之间，没有其余整数了，也就是说，第二个数字5，无论改成什么数字，都无法使这个数组变成有序数组，因此，最长递增子序列必须满足要求：当i大于j的时候，arr[i] >= arr[j] + ( i - j ),这样才能保证i和j之间能插入i - j 个数字；
+
+2、如果数组是3 4 2 7 9，不难看出，最长递增子序列是2 7 9，但是2之前，需要插入两个比2小的数字，但是题目要求只能是正整数，所以只能插入一个1，无法插入更小的数字了，因此，最长递增子序列必须满足arr[i] > i,这样才能保证，在i前面，能至少插入i个数字
+	
 
 ``` python
-# 尚未解决
+class Node:
+    def __init__(self, value, left=None, right=None):
+        self.value = value
+        self.left = left
+        self.right = right
+
+# 中序遍历；考虑到该题最高可能有上三十万个节点，用递归可能会导致栈溢出，所以不用递归，用循环
+def mid_order(node, lst):
+    stack = []
+    pos = node
+    while pos is not None or len(stack) > 0:
+        if pos is not None:
+            stack.append(pos)
+            pos = pos.left
+        else:
+            pos = stack.pop()
+	    # 将节点中序遍历存到lst里面去
+            lst.append(pos.value)
+            pos = pos.right
+
+# 用动态规划（见7.2）的方法求出中序遍历结果的lst的最长递增子序列
+def fix_arr(arr):
+    max_len = 1
+    dp = [1] * len(arr)
+    for i in range(1, len(arr)):
+        for j in range(i):
+	    # arr[i] - arr[j] >= i - j：保证i和j之间至少能插入i-j个整数
+	    # arr[i] >= i + 1 and arr[j] >= j + 1：保证第n个数字之前至少能插入n个整数
+            if arr[j] < arr[i] and arr[i] - arr[j] >= i - j and arr[i] >= i + 1 and arr[j] >= j + 1:
+                dp[i] = max(dp[i], dp[j] + 1)
+        max_len = max(max_len, dp[i])
+    # 求出最长递增子序列的长度后，用数组长度减去该长度，就是至少要修改的节点的次数
+    return len(arr) - max_len
+
+
+if __name__ == '__main__':
+    f = open("fix.out", "w")
+    file = open("fix.in")
+    i = int(file.readline())
+    try:
+        while i != 0:
+            lst = []
+            for j in range(i):
+                line = file.readline().split()
+                value = int(line[0])
+                father = line[1]
+                node = Node(value)
+                if father != '0':
+                    if father[-1] == 'L':
+                        lst[int(father[:-1]) - 1].left = node
+                    else:
+                        lst[int(father[:-1]) - 1].right = node
+                lst.append(node)
+            arr = []
+            mid_order(lst[0], arr)
+            print(fix_arr(arr), file=f)
+            i = int(file.readline())
+    except EOFError:
+        pass
+    except Exception:
+        pass
 ```
 ---
 
